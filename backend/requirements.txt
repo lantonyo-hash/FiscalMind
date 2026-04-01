@@ -4,6 +4,6 @@ pandas>=2.0.3,<2.3.0
 numpy>=1.24.0,<2.0.0
 openpyxl==3.1.2
 python-multipart==0.0.9
-pydantic==2.6.4
+pydantic<2.0
 setuptools>=68.0.0
 wheel>=0.41.0
