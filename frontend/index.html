@@ -1,406 +1,838 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Revisor Contable Inteligente</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    
-    :root {
-      --bg: #fafaf9;
-      --surface: #ffffff;
-      --border: #e5e5e3;
-      --text: #1a1a1a;
-      --muted: #737373;
-      --danger: #dc2626;
-      --danger-bg: #fef2f2;
-      --warning: #d97706;
-      --warning-bg: #fffbeb;
-      --success: #16a34a;
-      --success-bg: #f0fdf4;
-      --info: #2563eb;
-      --info-bg: #eff6ff;
-      --radius: 10px;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FiscalMind — Pre-calculador F29</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --ink:     #0f0f0e;
+  --ink-2:   #3a3a38;
+  --ink-3:   #7a7a76;
+  --paper:   #f7f6f1;
+  --white:   #ffffff;
+  --line:    #e2e0d8;
+  --line-2:  #ccc9be;
+  --ok:      #1a6641;
+  --ok-bg:   #edf7f2;
+  --ok-line: #a3d9bc;
+  --err:     #b91c1c;
+  --err-bg:  #fef2f2;
+  --err-line:#fca5a5;
+  --warn:    #92400e;
+  --warn-bg: #fffbeb;
+  --warn-line:#fcd34d;
+  --accent:  #1a3faa;
+  --r:       8px;
+}
 
-    body {
-      font-family: -apple-system, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ── Layout ── */
-    .topbar {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 0 2rem;
-      height: 56px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky; top: 0; z-index: 10;
-    }
-    .logo { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-    .logo-badge { background: #1a1a1a; color: #fff; font-size: 10px; padding: 2px 7px; border-radius: 999px; letter-spacing: 0.5px; }
-    .container { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
 
-    /* ── Upload ── */
-    .upload-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 3rem 2rem;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
-      margin-bottom: 1rem;
-    }
-    .upload-card:hover, .upload-card.drag { border-color: #999; background: #f5f5f4; }
-    .upload-icon { font-size: 40px; margin-bottom: 1rem; }
-    .upload-title { font-size: 16px; font-weight: 600; margin-bottom: 6px; }
-    .upload-sub { font-size: 13px; color: var(--muted); }
-    #fileInput { display: none; }
+/* ── Topbar ── */
+.topbar {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 0 2rem;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky; top: 0; z-index: 100;
+}
+.logo {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px;
+  letter-spacing: -0.3px;
+  display: flex; align-items: center; gap: 10px;
+}
+.logo-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 300;
+  color: #8a8a84;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.topbar-right { font-size: 12px; color: #6a6a64; font-family: 'DM Mono', monospace; }
 
-    /* ── Buttons ── */
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 9px 18px; border-radius: 8px;
-      font-size: 13px; font-weight: 500; cursor: pointer;
-      border: 1px solid var(--border); background: var(--surface);
-      color: var(--text); transition: background 0.1s;
-    }
-    .btn:hover { background: #f5f5f4; }
-    .btn-dark { background: #1a1a1a; color: #fff; border-color: transparent; }
-    .btn-dark:hover { background: #333; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+/* ── Layout ── */
+.shell { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 52px); }
 
-    /* ── Status ── */
-    .status-banner {
-      border-radius: var(--radius);
-      padding: 1rem 1.25rem;
-      display: flex; align-items: center; gap: 14px;
-      margin-bottom: 1.5rem;
-    }
-    .status-ok { background: var(--success-bg); border: 1px solid #bbf7d0; }
-    .status-err { background: var(--danger-bg); border: 1px solid #fecaca; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-    .dot-ok { background: var(--success); }
-    .dot-err { background: var(--danger); }
-    .status-text { font-size: 15px; font-weight: 600; }
-    .status-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--white);
+  border-right: 1px solid var(--line);
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+.sidebar-title {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
 
-    /* ── Metrics ── */
-    .metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
-    .metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
-    .metric-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
-    .metric-val { font-size: 24px; font-weight: 600; }
-    .metric-val.red { color: var(--danger); }
-    .metric-val.amber { color: var(--warning); }
-    .metric-val.green { color: var(--success); }
+/* ── File slots ── */
+.file-slots { display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem; }
+.file-slot {
+  border: 1px dashed var(--line-2);
+  border-radius: var(--r);
+  padding: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  position: relative;
+}
+.file-slot:hover { border-color: var(--ink-3); background: var(--paper); }
+.file-slot.filled { border-style: solid; border-color: var(--line); background: var(--paper); }
+.file-slot.filled:hover { border-color: var(--ink-2); }
+.slot-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.slot-num { font-size: 10px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--ink-3); }
+.slot-remove { width: 18px; height: 18px; border-radius: 50%; border: 1px solid var(--line); background: transparent; cursor: pointer; display: none; align-items: center; justify-content: center; font-size: 12px; color: var(--ink-3); }
+.file-slot.filled .slot-remove { display: flex; }
+.slot-remove:hover { background: var(--err-bg); border-color: var(--err-line); color: var(--err); }
+.slot-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.slot-select {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: 'DM Sans', sans-serif;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+}
+.slot-label {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+  display: block;
+}
+.slot-label:hover { border-color: var(--ink-3); }
+.slot-filename { font-size: 11px; color: var(--ink-2); margin-top: 6px; font-family: 'DM Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.slot-empty-label { font-size: 12px; color: var(--ink-3); text-align: center; padding: 8px 0; }
 
-    /* ── Tabs ── */
-    .tabs { display: flex; gap: 2px; margin-bottom: 1rem; background: #f0f0ef; border-radius: 8px; padding: 3px; }
-    .tab { flex: 1; text-align: center; padding: 7px 12px; font-size: 13px; font-weight: 500; border-radius: 6px; cursor: pointer; color: var(--muted); transition: all 0.12s; }
-    .tab.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.add-slot-btn {
+  width: 100%; padding: 8px; border: 1px dashed var(--line-2); border-radius: var(--r);
+  background: transparent; cursor: pointer; font-size: 12px; color: var(--ink-3);
+  font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.add-slot-btn:hover { border-color: var(--ink-2); color: var(--ink); background: var(--paper); }
 
-    /* ── Issue list ── */
-    .issue-list { display: flex; flex-direction: column; gap: 8px; }
-    .issue {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 0.875rem 1rem 0.875rem 1.125rem;
-      display: flex; gap: 12px; align-items: flex-start;
-    }
-    .issue.error { border-left: 3px solid var(--danger); }
-    .issue.warn  { border-left: 3px solid var(--warning); }
-    .issue-badge {
-      font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
-      white-space: nowrap; flex-shrink: 0; letter-spacing: 0.3px; margin-top: 2px;
-    }
-    .badge-err { background: var(--danger-bg); color: var(--danger); }
-    .badge-warn { background: var(--warning-bg); color: var(--warning); }
-    .issue-msg { font-size: 13px; line-height: 1.5; flex: 1; }
-    .issue-meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.analyze-btn {
+  width: 100%; padding: 11px; border-radius: var(--r);
+  background: var(--ink); color: var(--white);
+  border: none; cursor: pointer;
+  font-size: 14px; font-weight: 500; font-family: 'DM Sans', sans-serif;
+  transition: opacity 0.15s; margin-top: 1rem;
+  letter-spacing: -0.2px;
+}
+.analyze-btn:hover { opacity: 0.85; }
+.analyze-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-    /* ── Stats ── */
-    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; }
-    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
-    .stat-val { font-size: 17px; font-weight: 600; }
+.demo-btn {
+  width: 100%; padding: 9px; border-radius: var(--r);
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent); cursor: pointer;
+  font-size: 13px; font-family: 'DM Sans', sans-serif;
+  transition: all 0.15s; margin-top: 8px;
+}
+.demo-btn:hover { background: #eff3ff; }
 
-    /* ── Loading ── */
-    .loading { text-align: center; padding: 4rem; }
-    .spinner {
-      width: 32px; height: 32px; border: 3px solid #e5e5e3;
-      border-top-color: #1a1a1a; border-radius: 50%;
-      animation: spin 0.7s linear infinite; margin: 0 auto 1rem;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { font-size: 14px; color: var(--muted); }
+/* ── Main area ── */
+.main { padding: 2rem; overflow-y: auto; }
+.main-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--ink-3);
+}
+.main-empty-icon { font-size: 48px; opacity: 0.4; }
+.main-empty-title { font-family: 'Instrument Serif', serif; font-size: 22px; color: var(--ink-2); }
+.main-empty-sub { font-size: 13px; text-align: center; max-width: 320px; line-height: 1.7; }
 
-    .empty { text-align: center; padding: 2.5rem; color: var(--muted); font-size: 14px; }
-    .section-actions { display: flex; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .file-info { font-size: 13px; color: var(--muted); margin-bottom: 1rem; background: #f5f5f4; border-radius: 8px; padding: 8px 12px; }
+/* ── Status banner ── */
+.status-banner {
+  border-radius: var(--r);
+  padding: 1rem 1.25rem;
+  display: flex; align-items: center; gap: 14px;
+  margin-bottom: 1.5rem;
+  border: 1px solid;
+}
+.status-ok   { background: var(--ok-bg);   border-color: var(--ok-line); }
+.status-warn { background: var(--warn-bg); border-color: var(--warn-line); }
+.status-err  { background: var(--err-bg);  border-color: var(--err-line); }
+.status-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.dot-ok   { background: var(--ok); }
+.dot-warn { background: #d97706; }
+.dot-err  { background: var(--err); }
+.status-label { font-weight: 500; font-size: 15px; }
+.status-meta  { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
 
-    @media (max-width: 600px) {
-      .metrics { grid-template-columns: repeat(2, 1fr); }
-      .stats-grid { grid-template-columns: 1fr 1fr; }
-    }
-  </style>
+/* ── F29 Block ── */
+.f29-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+.f29-header {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 1rem 1.5rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.f29-header-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 18px;
+  letter-spacing: -0.3px;
+}
+.f29-header-sub { font-size: 11px; color: #9a9a92; font-family: 'DM Mono', monospace; }
+.f29-body { padding: 0; }
+
+.f29-section { border-bottom: 1px solid var(--line); }
+.f29-section:last-child { border-bottom: none; }
+.f29-section-title {
+  font-size: 11px; font-weight: 500; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink-3);
+  padding: 0.875rem 1.5rem 0.5rem;
+}
+.f29-row {
+  display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 1rem;
+  padding: 0.625rem 1.5rem;
+  border-top: 1px solid var(--line);
+}
+.f29-row:first-of-type { border-top: none; }
+.f29-linea { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ink-3); min-width: 56px; }
+.f29-label { font-size: 13px; color: var(--ink-2); }
+.f29-value { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; text-align: right; white-space: nowrap; }
+.f29-value.highlight { font-size: 16px; color: var(--ok); }
+.f29-value.highlight.pagar { color: var(--err); }
+.f29-value.favor { color: var(--accent); }
+
+.f29-result-row {
+  display: grid; grid-template-columns: 1fr auto;
+  align-items: center; gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--paper);
+}
+.f29-result-label { font-size: 14px; font-weight: 500; }
+.f29-result-value { font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500; }
+
+/* ── Copiar texto ── */
+.copy-block {
+  background: var(--ink);
+  border-radius: var(--r);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+.copy-block pre {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: #c8c8be;
+  white-space: pre;
+  overflow-x: auto;
+  line-height: 1.7;
+}
+.copy-btn {
+  position: absolute; top: 1rem; right: 1rem;
+  padding: 5px 12px; border-radius: 5px;
+  background: transparent; border: 1px solid #4a4a44;
+  color: #9a9a90; font-size: 11px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.copy-btn:hover { background: #1f1f1e; color: #d0d0c8; border-color: #6a6a60; }
+.copy-btn.copied { color: var(--ok); border-color: var(--ok); }
+
+/* ── Metrics ── */
+.metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+.metric {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 1rem;
+}
+.metric-label { font-size: 11px; color: var(--ink-3); margin-bottom: 6px; letter-spacing: 0.3px; }
+.metric-value { font-size: 22px; font-weight: 500; font-family: 'DM Mono', monospace; }
+.metric-value.red   { color: var(--err); }
+.metric-value.amber { color: #d97706; }
+.metric-value.green { color: var(--ok); }
+.metric-value.blue  { color: var(--accent); }
+
+/* ── Incidencias ── */
+.tabs {
+  display: flex; gap: 0; margin-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+.tab {
+  padding: 8px 16px; font-size: 13px; cursor: pointer;
+  color: var(--ink-3); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: all 0.12s;
+}
+.tab:hover { color: var(--ink); }
+.tab.active { color: var(--ink); border-bottom-color: var(--ink); font-weight: 500; }
+
+.inc-list { display: flex; flex-direction: column; gap: 8px; }
+.inc-item {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 0.75rem 1rem 0.75rem 1.125rem;
+  display: flex; gap: 12px;
+}
+.inc-item.error { border-left: 3px solid var(--err); }
+.inc-item.warn  { border-left: 3px solid #d97706; }
+.inc-badge {
+  font-size: 9px; font-weight: 500; padding: 2px 7px;
+  border-radius: 3px; white-space: nowrap; flex-shrink: 0;
+  margin-top: 3px; font-family: 'DM Mono', monospace; letter-spacing: 0.5px;
+}
+.badge-err  { background: var(--err-bg); color: var(--err); }
+.badge-warn { background: var(--warn-bg); color: var(--warn); }
+.inc-msg { font-size: 13px; flex: 1; line-height: 1.5; }
+.inc-meta { font-size: 11px; color: var(--ink-3); margin-top: 3px; font-family: 'DM Mono', monospace; }
+
+/* ── Loading ── */
+.loading-overlay {
+  position: fixed; inset: 0; background: rgba(15,15,14,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 500;
+}
+.loading-card {
+  background: var(--white); border-radius: 12px;
+  padding: 2rem 2.5rem; text-align: center; min-width: 240px;
+}
+.spinner {
+  width: 32px; height: 32px; border: 2.5px solid var(--line);
+  border-top-color: var(--ink); border-radius: 50%;
+  animation: spin 0.7s linear infinite; margin: 0 auto 1rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-steps { font-size: 12px; color: var(--ink-3); font-family: 'DM Mono', monospace; }
+
+/* ── Resumenes ── */
+.resumenes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.resumen-card {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 1rem;
+}
+.resumen-periodo { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--ink-3); }
+.resumen-tipo { font-size: 11px; padding: 2px 7px; border-radius: 3px; font-family: 'DM Mono', monospace; display: inline-block; margin: 4px 0 8px; }
+.tipo-compras { background: #eff3ff; color: var(--accent); }
+.tipo-ventas  { background: var(--ok-bg); color: var(--ok); }
+.resumen-val  { font-size: 14px; font-weight: 500; font-family: 'DM Mono', monospace; }
+.resumen-label { font-size: 11px; color: var(--ink-3); }
+
+.section-title {
+  font-size: 11px; font-weight: 500; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink-3);
+  margin-bottom: 0.875rem;
+}
+.download-btn {
+  padding: 8px 16px; border-radius: var(--r);
+  background: transparent; border: 1px solid var(--line);
+  color: var(--ink); cursor: pointer; font-size: 13px;
+  font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.download-btn:hover { background: var(--paper); border-color: var(--ink-2); }
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { border-right: none; border-bottom: 1px solid var(--line); }
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
 </head>
 <body>
 
 <div class="topbar">
   <div class="logo">
-    🧾 Revisor Contable Inteligente
-    <span class="logo-badge">MVP</span>
+    FiscalMind
+    <span class="logo-sub">F29 · Chile</span>
   </div>
-  <span style="font-size:12px;color:var(--muted)">Chile · IVA 19%</span>
+  <div class="topbar-right" id="timestamp"></div>
 </div>
 
-<div class="container">
+<div class="shell">
 
-  <!-- UPLOAD -->
-  <div id="panelUpload">
-    <div style="text-align:center;margin-bottom:2rem;">
-      <h2 style="font-size:22px;font-weight:600;margin-bottom:8px">Valida tu libro contable antes de declarar</h2>
-      <p style="font-size:14px;color:var(--muted)">Sube tu Excel del libro de compras o ventas. Detectamos errores de IVA, RUTs inválidos, duplicados y más.</p>
-    </div>
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Archivos de entrada</div>
 
-    <div class="upload-card" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-      <input type="file" id="fileInput" accept=".xlsx,.csv" />
-      <div class="upload-icon">📊</div>
-      <div class="upload-title">Arrastra tu archivo o haz clic aquí</div>
-      <div class="upload-sub">Acepta .xlsx y .csv · Exportado desde RJC Software, SII u otro sistema</div>
+    <div class="file-slots" id="fileSlots"></div>
+    <button class="add-slot-btn" id="addSlotBtn" onclick="agregarSlot()">+ Agregar archivo</button>
+
+    <button class="analyze-btn" id="analyzeBtn" onclick="analizar()">
+      Calcular F29 →
+    </button>
+    <button class="demo-btn" onclick="cargarDemo()">Usar datos de demostración</button>
+
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--line)">
+      <div class="sidebar-title">Período de declaración</div>
+      <input type="month" id="periodoDeclarado"
+        style="width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);font-size:13px;font-family:'DM Mono',monospace;background:var(--white);color:var(--ink);"
+      />
+      <p style="font-size:11px;color:var(--ink-3);margin-top:6px;">Deja en blanco para usar el período más reciente.</p>
     </div>
-    <div class="btn-group">
-      <button class="btn btn-dark" onclick="analizarDemo()">Probar con datos demo →</button>
-      <button class="btn" onclick="document.getElementById('fileInput').click()">Subir mi archivo</button>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <main class="main" id="main">
+    <div class="main-empty" id="emptyState">
+      <div class="main-empty-icon">📋</div>
+      <div class="main-empty-title">Sube tus archivos contables</div>
+      <div class="main-empty-sub">
+        Agrega hasta 6 archivos Excel con tus libros de compras y/o ventas.
+        FiscalMind los valida y calcula tu F29 listo para declarar.
+      </div>
     </div>
+    <div id="resultado" style="display:none"></div>
+  </main>
+
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay" style="display:none">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div style="font-size:14px;font-weight:500;margin-bottom:6px">Analizando archivos...</div>
+    <div class="loading-steps" id="loadingStep">Leyendo Excel...</div>
   </div>
-
-  <!-- LOADING -->
-  <div id="panelLoading" style="display:none">
-    <div class="loading">
-      <div class="spinner"></div>
-      <div class="loading-text">Analizando libro contable...</div>
-    </div>
-  </div>
-
-  <!-- RESULTADO -->
-  <div id="panelResult" style="display:none">
-    <div id="fileInfo" class="file-info"></div>
-    <div id="statusBanner"></div>
-    <div id="metricsRow" class="metrics"></div>
-    
-    <div class="section-actions">
-      <button class="btn btn-dark" onclick="descargar()">⬇ Descargar reporte</button>
-      <button class="btn" onclick="reset()">← Analizar otro</button>
-    </div>
-
-    <div class="tabs">
-      <div class="tab active" id="tab-err" onclick="tab('err')">Errores críticos</div>
-      <div class="tab" id="tab-adv" onclick="tab('adv')">Advertencias</div>
-      <div class="tab" id="tab-stats" onclick="tab('stats')">Estadísticas</div>
-    </div>
-
-    <div id="paneErr"><div class="issue-list" id="listaErr"></div></div>
-    <div id="paneAdv" style="display:none"><div class="issue-list" id="listaAdv"></div></div>
-    <div id="paneStats" style="display:none"><div class="stats-grid" id="statsGrid"></div></div>
-  </div>
-
 </div>
 
 <script>
-// ── CONFIGURACIÓN ───────────────────────────────────────────────
-const API = "https://fiscalmind.onrender.com"; // Cambiar en producción
-let resultado = null;
-let fileRef = null;
+// ── CONFIG ────────────────────────────────────────────────────────
+const API = "http://localhost:8000"; // Cambiar en producción: https://fiscalmind-api.onrender.com
+let slots  = [];
+let slotId = 0;
+const MAX_SLOTS = 6;
 
-// ── DEMO DATA ───────────────────────────────────────────────────
-// Mismos datos que en el artifact (ver analyzer.py para la fuente de verdad)
-const DEMO = [
-  {fecha:"01/03/2025",rut:"76.123.456-7",proveedor:"Distribuidora Pérez Ltda.",numero_doc:"F-001234",tipo_doc:"Factura",monto_neto:1000000,iva:190000,total:1190000},
-  {fecha:"03/03/2025",rut:"12.345.678-9",proveedor:"Servicios TI SpA",numero_doc:"F-005678",tipo_doc:"Factura",monto_neto:500000,iva:95000,total:595000},
-  {fecha:"05/03/2025",rut:"77.890.123-4",proveedor:"Comercial Andina SA",numero_doc:"F-009012",tipo_doc:"Factura",monto_neto:250000,iva:47500,total:297500},
-  {fecha:"07/03/2025",rut:"76.543.210-K",proveedor:"Papelería Central",numero_doc:"F-003456",tipo_doc:"Factura",monto_neto:1000000,iva:200000,total:1200000},
-  {fecha:"10/03/2025",rut:"76.123.456-7",proveedor:"Distribuidora Pérez Ltda.",numero_doc:"F-001234",tipo_doc:"Factura",monto_neto:1000000,iva:190000,total:1190000},
-  {fecha:"12/03/2025",rut:"12.345.678-0",proveedor:"Proveedor Desconocido",numero_doc:"F-007890",tipo_doc:"Factura",monto_neto:300000,iva:57000,total:357000},
-  {fecha:"14/03/2025",rut:"96.789.012-3",proveedor:"Seguros del Sur",numero_doc:"F-011234",tipo_doc:"Factura",monto_neto:800000,iva:152000,total:999999},
-  {fecha:"18/03/2025",rut:"89.012.345-6",proveedor:"Nuevo Proveedor XYZ",numero_doc:"F-015678",tipo_doc:"Factura",monto_neto:400000,iva:76000,total:476000},
-  {fecha:"20/03/2025",rut:"76.234.567-8",proveedor:"Gran Contrato Excep. SA",numero_doc:"F-019012",tipo_doc:"Factura",monto_neto:50000000,iva:9500000,total:59500000},
-  {fecha:"28/03/2025",rut:"76.123.456-7",proveedor:"Distribuidora Pérez Ltda.",numero_doc:"F-021001",tipo_doc:"Factura",monto_neto:750000,iva:142500,total:892500},
+// ── TIMESTAMP ────────────────────────────────────────────────────
+function tick() {
+  const now = new Date();
+  document.getElementById("timestamp").textContent =
+    now.toLocaleDateString("es-CL") + " · " + now.toLocaleTimeString("es-CL", {hour:"2-digit",minute:"2-digit"});
+}
+tick(); setInterval(tick, 30000);
+
+// ── SLOTS ─────────────────────────────────────────────────────────
+function agregarSlot() {
+  if (slots.length >= MAX_SLOTS) return;
+  const id = ++slotId;
+  slots.push({ id, file: null, tipo: "compras", periodo: "" });
+  renderSlots();
+}
+
+function quitarSlot(id) {
+  slots = slots.filter(s => s.id !== id);
+  renderSlots();
+}
+
+function renderSlots() {
+  const cont = document.getElementById("fileSlots");
+  cont.innerHTML = "";
+  slots.forEach((slot, i) => {
+    const filled = !!slot.file;
+    const div = document.createElement("div");
+    div.className = "file-slot" + (filled ? " filled" : "");
+    div.innerHTML = `
+      <div class="slot-header">
+        <span class="slot-num">ARCHIVO ${i+1}</span>
+        <button class="slot-remove" onclick="quitarSlot(${slot.id})" title="Quitar">×</button>
+      </div>
+      ${filled ? `
+        <div class="slot-controls">
+          <select class="slot-select" onchange="actualizarSlot(${slot.id},'tipo',this.value)">
+            <option value="compras" ${slot.tipo==="compras"?"selected":""}>Compras</option>
+            <option value="ventas"  ${slot.tipo==="ventas"?"selected":""}>Ventas</option>
+          </select>
+          <input type="month" class="slot-select" value="${slot.periodo}"
+            onchange="actualizarSlot(${slot.id},'periodo',this.value)"
+            placeholder="Período" />
+        </div>
+        <div class="slot-filename">📄 ${slot.file.name}</div>
+      ` : `
+        <div class="slot-empty-label" onclick="abrirSelector(${slot.id})" style="cursor:pointer">
+          Haz clic para seleccionar archivo
+        </div>
+        <input type="file" id="fi_${slot.id}" accept=".xlsx,.csv" style="display:none"
+          onchange="archivoSeleccionado(${slot.id}, this)" />
+      `}
+    `;
+    if (!filled) {
+      div.onclick = (e) => { if (!e.target.closest("button")) abrirSelector(slot.id); };
+    }
+    cont.appendChild(div);
+  });
+
+  document.getElementById("addSlotBtn").style.display = slots.length >= MAX_SLOTS ? "none" : "";
+  document.getElementById("analyzeBtn").disabled = slots.length === 0 || slots.some(s => !s.file || !s.periodo);
+}
+
+function abrirSelector(id) {
+  document.getElementById(`fi_${id}`)?.click();
+}
+
+function archivoSeleccionado(id, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const slot = slots.find(s => s.id === id);
+  if (!slot) return;
+  slot.file = file;
+  // Auto-detectar período desde el nombre si tiene formato YYYY-MM o YYYYMM
+  const m = file.name.match(/(\d{4})[-_]?(0[1-9]|1[0-2])/);
+  if (m && !slot.periodo) slot.periodo = `${m[1]}-${m[2]}`;
+  renderSlots();
+}
+
+function actualizarSlot(id, campo, valor) {
+  const slot = slots.find(s => s.id === id);
+  if (slot) slot[campo] = valor;
+  renderSlots();
+}
+
+// ── ANÁLISIS DEMO (en memoria, sin backend) ───────────────────────
+const DEMO_COMPRAS = [
+  {rut:"76.123.456-7",proveedor:"Distribuidora Pérez Ltda.",numero_doc:"C-001",monto_neto:1000000,iva:190000,total:1190000},
+  {rut:"12.345.678-9",proveedor:"Servicios TI SpA",numero_doc:"C-002",monto_neto:500000,iva:95000,total:595000},
+  {rut:"77.890.123-4",proveedor:"Comercial Andina SA",numero_doc:"C-003",monto_neto:800000,iva:152000,total:952000},
+  {rut:"89.012.345-6",proveedor:"Suministros Norte",numero_doc:"C-004",monto_neto:300000,iva:57000,total:357000},
+  {rut:"96.789.012-3",proveedor:"Papelería del Sur",numero_doc:"C-005",monto_neto:120000,iva:22800,total:142800},
+];
+const DEMO_VENTAS = [
+  {rut:"11.111.111-1",proveedor:"Cliente Retail SA",numero_doc:"V-001",monto_neto:2000000,iva:380000,total:2380000},
+  {rut:"22.222.222-2",proveedor:"Empresa Minera XYZ",numero_doc:"V-002",monto_neto:3500000,iva:665000,total:4165000},
+  {rut:"33.333.333-3",proveedor:"Constructora Andes",numero_doc:"V-003",monto_neto:1800000,iva:342000,total:2142000},
+  {rut:"44.444.444-4",proveedor:"Comercial Sur Ltda.",numero_doc:"V-004",monto_neto:900000,iva:171000,total:1071000},
 ];
 
-// ── MODO: usar backend real si está disponible, si no analizar en JS ──
-async function analizarConBackend(formData) {
-  try {
-    const res = await fetch(`${API}/analizar`, { method: "POST", body: formData });
-    if (!res.ok) throw new Error("Backend no disponible");
-    return await res.json();
-  } catch {
-    return null; // fallback a análisis local
-  }
-}
-
-// ── ANÁLISIS LOCAL (mirror del backend en JS) ────────────────────
-function limpiarRut(r) { return String(r).replace(/[.\-\s]/g,"").toUpperCase().trim(); }
-function validarRut(raw) {
-  const r = limpiarRut(raw); if (r.length<2) return false;
-  const cuerpo = r.slice(0,-1), dv = r.slice(-1);
-  if (!/^\d+$/.test(cuerpo)) return false;
-  let s=0,m=2;
-  for(let i=cuerpo.length-1;i>=0;i--){s+=parseInt(cuerpo[i])*m;m=m<7?m+1:2;}
-  const c=11-(s%11),calc=c===11?"0":c===10?"K":String(c);
-  return dv===calc;
-}
-function toNum(v) {
-  if(v===null||v===undefined||v==="") return NaN;
-  let s=String(v).replace(/[$\s]/g,"");
-  if(s.includes(",")&&s.includes(".")) s=s.replace(/\./g,"").replace(",",".");
-  else if(s.includes(",")) s=s.replace(",",".");
-  else s=s.replace(/\./g,"");
-  return parseFloat(s);
-}
-
-function analizarLocal(datos) {
-  const err=[], adv=[];
-  const addE=(f,c,m,v)=>err.push({fila:f,campo:c,tipo:"ERROR CRÍTICO",mensaje:m,valor:String(v||"")});
-  const addW=(f,c,m,v)=>adv.push({fila:f,campo:c,tipo:"ADVERTENCIA",mensaje:m,valor:String(v||"")});
-  const seen=new Set();
-  datos.forEach((r,i)=>{
-    const f=i+2;
-    ["rut","monto_neto","iva","total"].forEach(c=>{if(r[c]===undefined||String(r[c]).trim()==="")addE(f,c,`Campo obligatorio vacío: ${c}`,"");});
-    if(r.rut&&!validarRut(String(r.rut)))addE(f,"rut","RUT inválido (dígito verificador incorrecto)",r.rut);
-    const n=toNum(r.monto_neto),iv=toNum(r.iva),tot=toNum(r.total);
-    if(!isNaN(n)&&!isNaN(iv)){const e=Math.round(n*0.19);if(Math.abs(iv-e)>1)addE(f,"iva",`IVA inconsistente: $${iv.toLocaleString("es-CL")} ≠ $${e.toLocaleString("es-CL")} esperado (19% de $${n.toLocaleString("es-CL")})`,iv);}
-    if(!isNaN(n)&&!isNaN(iv)&&!isNaN(tot)){const e=n+iv;if(Math.abs(tot-e)>1)addE(f,"total",`Total no cuadra: $${n.toLocaleString("es-CL")}+$${iv.toLocaleString("es-CL")}=$${e.toLocaleString("es-CL")} ≠ $${tot.toLocaleString("es-CL")}`,tot);}
-    const k=`${limpiarRut(String(r.rut||""))}-${r.numero_doc||""}`;
-    if(seen.has(k)&&k!=="-")addE(f,"numero_doc",`Factura duplicada: RUT ${r.rut} - Doc ${r.numero_doc}`,r.numero_doc);
-    else seen.add(k);
-  });
-  const cp={};
-  datos.forEach(r=>{const p=r.proveedor||"";cp[p]=(cp[p]||0)+1;});
-  datos.forEach((r,i)=>{if(cp[r.proveedor]===1&&r.proveedor)addW(i+2,"proveedor",`Proveedor nuevo: "${r.proveedor}" (aparece por primera vez)`,r.proveedor);});
-  const tvs=datos.map((r,i)=>({i,v:toNum(r.total)})).filter(x=>!isNaN(x.v));
-  if(tvs.length>=5){
-    const vs=tvs.map(x=>x.v),m=vs.reduce((a,b)=>a+b,0)/vs.length;
-    const std=Math.sqrt(vs.reduce((a,v)=>a+(v-m)**2,0)/vs.length);
-    if(std>0)tvs.forEach(({i,v})=>{const z=Math.abs((v-m)/std);if(z>3)addW(i+2,"total",`Monto atípico: $${v.toLocaleString("es-CL")} (Z=${z.toFixed(1)}, promedio=$${Math.round(m).toLocaleString("es-CL")})`,v);});
-    for(let j=1;j<tvs.length;j++){const p=tvs[j-1].v,c=tvs[j].v;if(p!==0){const r=Math.abs(c/p);if(r>5||r<0.2)addW(tvs[j].i+2,"total",`Cambio brusco: de $${p.toLocaleString("es-CL")} a $${c.toLocaleString("es-CL")} (×${r.toFixed(1)})`,c);}}
-  }
-  const totals=datos.map(r=>toNum(r.total)).filter(v=>!isNaN(v));
-  const ivas=datos.map(r=>toNum(r.iva)).filter(v=>!isNaN(v));
-  const netos=datos.map(r=>toNum(r.monto_neto)).filter(v=>!isNaN(v));
-  const sum=a=>a.reduce((x,y)=>x+y,0);
+function calcularDemo(compras, ventas, periodo) {
+  const sumCol = (arr, col) => arr.reduce((s,r) => s+(r[col]||0), 0);
+  const vnetas = sumCol(ventas, "monto_neto");
+  const viva   = sumCol(ventas, "iva");
+  const cnetas = sumCol(compras, "monto_neto");
+  const civa   = sumCol(compras, "iva");
+  const det    = viva - civa;
   return {
-    resumen:{estado:err.length===0?"OK":"CON ERRORES",total_registros:datos.length,total_errores:err.length,total_advertencias:adv.length,
-      estadisticas:{suma_total:sum(totals),suma_iva:sum(ivas),suma_neta:sum(netos),cantidad_documentos:datos.length,promedio_total:totals.length?sum(totals)/totals.length:0}},
-    errores:err,advertencias:adv
+    estado: "OK",
+    formulario_29: {
+      periodo, periodos_incluidos: [periodo],
+      ventas_netas: vnetas, iva_debito: viva,
+      compras_netas: cnetas, iva_credito: civa,
+      iva_determinado: Math.max(0, det),
+      saldo_a_favor: Math.max(0, -det),
+    },
+    resumenes: [
+      {periodo,tipo:"compras",total_registros:compras.length,total_neto:cnetas,total_iva:civa,total_importe:sumCol(compras,"total"),errores:0,advertencias:0},
+      {periodo,tipo:"ventas",total_registros:ventas.length,total_neto:vnetas,total_iva:viva,total_importe:sumCol(ventas,"total"),errores:0,advertencias:0},
+    ],
+    incidencias: [],
+    texto_copiable: generarTexto({periodo,periodos_incluidos:[periodo],ventas_netas:vnetas,iva_debito:viva,compras_netas:cnetas,iva_credito:civa,iva_determinado:Math.max(0,det),saldo_a_favor:Math.max(0,-det)}),
+    analizado_en: new Date().toLocaleString("es-CL"),
   };
 }
 
-// ── UI ───────────────────────────────────────────────────────────
-function show(id) {
-  ["panelUpload","panelLoading","panelResult"].forEach(p=>document.getElementById(p).style.display=p===id?"":"none");
+function generarTexto(f29) {
+  const fmt = v => "$" + Math.round(v).toLocaleString("es-CL");
+  const pad = (s, n) => s.padEnd(n, " ");
+  return `╔══════════════════════════════════════════════════╗
+║         FORMULARIO 29 — PRE-CÁLCULO              ║
+║              FiscalMind · Período ${f29.periodo}     ║
+╚══════════════════════════════════════════════════╝
+
+  Períodos incluidos: ${f29.periodos_incluidos.join(", ")}
+
+──────────────────────────────────────────────────
+  VENTAS (Libro de Ventas)
+──────────────────────────────────────────────────
+  Línea 503 — Ventas netas afectas:   ${fmt(f29.ventas_netas)}
+  Línea 502 — IVA Débito (19%):       ${fmt(f29.iva_debito)}
+
+──────────────────────────────────────────────────
+  COMPRAS (Libro de Compras)
+──────────────────────────────────────────────────
+  Línea 520 — Compras netas c/crédito:${fmt(f29.compras_netas)}
+  Línea 521 — IVA Crédito:            ${fmt(f29.iva_credito)}
+
+──────────────────────────────────────────────────
+  RESULTADO
+──────────────────────────────────────────────────
+  IVA Determinado (Débito − Crédito): ${fmt(f29.iva_determinado)}
+${f29.saldo_a_favor>0?"  Saldo a favor contribuyente:        "+fmt(f29.saldo_a_favor):""}
+
+  ${f29.saldo_a_favor>0?"⚠  Hay saldo a favor. Arrastra al período siguiente.":"✓  IVA a pagar al SII."}
+
+──────────────────────────────────────────────────
+  Generado por FiscalMind — Solo referencial.
+──────────────────────────────────────────────────`;
 }
 
-function mostrar(res, nombre) {
-  resultado = res;
-  show("panelResult");
-  const ok = res.resumen.estado==="OK";
-  document.getElementById("fileInfo").textContent = `📄 ${nombre} · ${res.resumen.total_registros} registros`;
-  document.getElementById("statusBanner").innerHTML=`
-    <div class="status-banner ${ok?"status-ok":"status-err"}">
-      <div class="dot ${ok?"dot-ok":"dot-err"}"></div>
+function cargarDemo() {
+  const periodo = "2025-06";
+  mostrarLoading();
+  setTimeout(() => {
+    ocultarLoading();
+    const resultado = calcularDemo(DEMO_COMPRAS, DEMO_VENTAS, periodo);
+    renderResultado(resultado);
+  }, 1200);
+}
+
+// ── ANÁLISIS REAL (con backend) ───────────────────────────────────
+async function analizar() {
+  const incompletos = slots.filter(s => !s.file || !s.periodo);
+  if (incompletos.length > 0) return;
+
+  mostrarLoading();
+  setStep("Leyendo archivos Excel...");
+
+  const fd = new FormData();
+  slots.forEach(s => { fd.append("archivos", s.file); fd.append("periodos", s.periodo); fd.append("tipos", s.tipo); });
+  const pd = document.getElementById("periodoDeclarado").value;
+  if (pd) fd.append("periodo_declarado", pd);
+
+  try {
+    setStep("Validando datos contables...");
+    const res = await fetch(`${API}/api/f29/calcular`, { method: "POST", body: fd });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Error en el servidor");
+    }
+    setStep("Calculando F29...");
+    const data = await res.json();
+    ocultarLoading();
+    renderResultado(data);
+  } catch (e) {
+    ocultarLoading();
+    // Si no hay backend, usar modo demo con datos reales del slot
+    if (e.message.includes("fetch") || e.message.includes("Failed")) {
+      alert("Backend no disponible. Usando modo simulación.");
+      cargarDemo();
+    } else {
+      alert("Error: " + e.message);
+    }
+  }
+}
+
+// ── RENDER RESULTADO ──────────────────────────────────────────────
+function clp(v) { return "$" + Math.round(v||0).toLocaleString("es-CL"); }
+
+function renderResultado(data) {
+  document.getElementById("emptyState").style.display = "none";
+  const cont = document.getElementById("resultado");
+  cont.style.display = "block";
+
+  const f29  = data.formulario_29;
+  const errs = (data.incidencias||[]).filter(i=>i.tipo==="ERROR_CRITICO");
+  const advs = (data.incidencias||[]).filter(i=>i.tipo==="ADVERTENCIA");
+
+  const okStr   = data.estado === "OK"         ? "status-ok"   : data.estado === "CON_ALERTAS" ? "status-warn" : "status-err";
+  const dotStr  = data.estado === "OK"         ? "dot-ok"      : data.estado === "CON_ALERTAS" ? "dot-warn"    : "dot-err";
+  const labelStr = data.estado === "OK"        ? "✓ Datos validados — F29 calculado" :
+                   data.estado === "CON_ALERTAS" ? "⚠ F29 calculado con advertencias" :
+                                                   "✗ Errores críticos — F29 no calculado";
+  const metaStr = data.estado === "OK"
+    ? `${(data.resumenes||[]).reduce((s,r)=>s+r.total_registros,0)} registros procesados · Analizado ${data.analizado_en}`
+    : `${errs.length} error(es) crítico(s) · ${advs.length} advertencia(s) · ${data.analizado_en}`;
+
+  let html = `
+    <div class="status-banner ${okStr}">
+      <div class="status-dot ${dotStr}"></div>
       <div>
-        <div class="status-text" style="color:var(--${ok?"success":"danger"})">${ok?"✓ SIN ERRORES CRÍTICOS":"✗ SE ENCONTRARON ERRORES"}</div>
-        <div class="status-sub">${ok?"El libro contable pasó todas las validaciones.":
-          `${res.resumen.total_errores} error(es) crítico(s) y ${res.resumen.total_advertencias} advertencia(s). Revisa antes de declarar.`}</div>
+        <div class="status-label">${labelStr}</div>
+        <div class="status-meta">${metaStr}</div>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="metric"><div class="metric-label">Documentos</div><div class="metric-value">${(data.resumenes||[]).reduce((s,r)=>s+r.total_registros,0)}</div></div>
+      <div class="metric"><div class="metric-label">Errores críticos</div><div class="metric-value ${errs.length>0?"red":"green"}">${errs.length}</div></div>
+      <div class="metric"><div class="metric-label">Advertencias</div><div class="metric-value ${advs.length>0?"amber":"green"}">${advs.length}</div></div>
+      <div class="metric"><div class="metric-label">IVA determinado</div><div class="metric-value ${f29?"blue":""}">${f29?clp(f29.iva_determinado):"—"}</div></div>
+    </div>
+  `;
+
+  // F29 Card
+  if (f29) {
+    const pagar = f29.iva_determinado > 0;
+    html += `
+      <div class="f29-card">
+        <div class="f29-header">
+          <div>
+            <div class="f29-header-title">Formulario 29 — Resultado</div>
+            <div class="f29-header-sub">Período ${f29.periodo} · ${f29.periodos_incluidos?.join(", ") || f29.periodo}</div>
+          </div>
+          <button class="download-btn" style="color:var(--paper);border-color:#4a4a44" onclick="descargarJSON()">↓ JSON</button>
+        </div>
+        <div class="f29-body">
+          <div class="f29-section">
+            <div class="f29-section-title">Ventas — Libro de Ventas</div>
+            <div class="f29-row">
+              <span class="f29-linea">L. 503</span>
+              <span class="f29-label">Ventas netas afectas</span>
+              <span class="f29-value">${clp(f29.ventas_netas)}</span>
+            </div>
+            <div class="f29-row">
+              <span class="f29-linea">L. 502</span>
+              <span class="f29-label">IVA Débito (19%)</span>
+              <span class="f29-value">${clp(f29.iva_debito)}</span>
+            </div>
+          </div>
+          <div class="f29-section">
+            <div class="f29-section-title">Compras — Libro de Compras</div>
+            <div class="f29-row">
+              <span class="f29-linea">L. 520</span>
+              <span class="f29-label">Compras netas con derecho a crédito</span>
+              <span class="f29-value">${clp(f29.compras_netas)}</span>
+            </div>
+            <div class="f29-row">
+              <span class="f29-linea">L. 521</span>
+              <span class="f29-label">IVA Crédito</span>
+              <span class="f29-value">${clp(f29.iva_credito)}</span>
+            </div>
+          </div>
+          <div class="f29-section">
+            <div class="f29-result-row">
+              <div>
+                <div class="f29-result-label" style="color:${pagar?"var(--err)":"var(--ok)"}">
+                  ${pagar?"IVA a Pagar al SII":"Saldo a Favor"}
+                </div>
+                <div style="font-size:12px;color:var(--ink-3);margin-top:2px">
+                  ${pagar?"Línea 547 — IVA Débito − IVA Crédito":"Línea 548 — El excedente se arrastra al próximo período"}
+                </div>
+              </div>
+              <div class="f29-result-value" style="color:${pagar?"var(--err)":"var(--accent)"}">
+                ${pagar ? clp(f29.iva_determinado) : clp(f29.saldo_a_favor)}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    // Texto copiable
+    if (data.texto_copiable) {
+      html += `
+        <div class="section-title">Texto listo para copiar / referencia</div>
+        <div class="copy-block">
+          <pre id="textoCopiable">${escapeHtml(data.texto_copiable)}</pre>
+          <button class="copy-btn" id="copyBtn" onclick="copiarTexto()">Copiar</button>
+        </div>`;
+    }
+  }
+
+  // Resúmenes por período
+  if ((data.resumenes||[]).length > 0) {
+    html += `<div class="section-title">Resumen por período</div><div class="resumenes-grid">`;
+    data.resumenes.forEach(r => {
+      html += `
+        <div class="resumen-card">
+          <div class="resumen-periodo">${r.periodo}</div>
+          <span class="resumen-tipo tipo-${r.tipo}">${r.tipo}</span>
+          <div class="resumen-label">Total neto</div>
+          <div class="resumen-val">${clp(r.total_neto)}</div>
+          <div class="resumen-label" style="margin-top:4px">IVA</div>
+          <div class="resumen-val" style="font-size:12px">${clp(r.total_iva)}</div>
+          <div style="font-size:11px;color:var(--ink-3);margin-top:4px">${r.total_registros} documentos</div>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // Incidencias
+  const allInc = data.incidencias || [];
+  if (allInc.length > 0) {
+    html += `
+      <div class="section-title">Incidencias detectadas</div>
+      <div class="tabs">
+        <div class="tab active" id="tab-err" onclick="cambiarTab('err')">Errores críticos (${errs.length})</div>
+        <div class="tab" id="tab-adv" onclick="cambiarTab('adv')">Advertencias (${advs.length})</div>
+      </div>
+      <div id="pane-err" class="inc-list">${errs.map(renderInc).join("")||'<p style="color:var(--ink-3);font-size:13px">Sin errores críticos.</p>'}</div>
+      <div id="pane-adv" class="inc-list" style="display:none">${advs.map(renderInc).join("")||'<p style="color:var(--ink-3);font-size:13px">Sin advertencias.</p>'}</div>`;
+  }
+
+  cont.innerHTML = html;
+
+  // Guardar resultado globalmente para descargar
+  window._lastResult = data;
+}
+
+function renderInc(inc) {
+  const esErr = inc.tipo === "ERROR_CRITICO";
+  return `
+    <div class="inc-item ${esErr?"error":"warn"}">
+      <span class="inc-badge ${esErr?"badge-err":"badge-warn"}">${esErr?"ERROR":"ALERTA"}</span>
+      <div>
+        <div class="inc-msg">${inc.mensaje}</div>
+        <div class="inc-meta">${[inc.periodo&&"Período "+inc.periodo, inc.fila&&"Fila "+inc.fila, inc.campo&&"Campo: "+inc.campo].filter(Boolean).join(" · ")}</div>
       </div>
     </div>`;
-  const s=res.resumen.estadisticas;
-  document.getElementById("metricsRow").innerHTML=`
-    <div class="metric"><div class="metric-label">Documentos</div><div class="metric-val">${res.resumen.total_registros}</div></div>
-    <div class="metric"><div class="metric-label">Errores críticos</div><div class="metric-val ${res.resumen.total_errores>0?"red":"green"}">${res.resumen.total_errores}</div></div>
-    <div class="metric"><div class="metric-label">Advertencias</div><div class="metric-val ${res.resumen.total_advertencias>0?"amber":"green"}">${res.resumen.total_advertencias}</div></div>
-    <div class="metric"><div class="metric-label">IVA total</div><div class="metric-val" style="font-size:18px">$${Math.round(s.suma_iva||0).toLocaleString("es-CL")}</div></div>`;
-  
-  const ri=item=>`<div class="issue error"><span class="issue-badge badge-err">ERROR</span><div><div class="issue-msg">${item.mensaje}</div><div class="issue-meta">Fila ${item.fila} · ${item.campo}${item.valor?" · Valor: "+item.valor:""}</div></div></div>`;
-  const rw=item=>`<div class="issue warn"><span class="issue-badge badge-warn">ALERTA</span><div><div class="issue-msg">${item.mensaje}</div><div class="issue-meta">Fila ${item.fila} · ${item.campo}${item.valor?" · Valor: "+item.valor:""}</div></div></div>`;
-  document.getElementById("listaErr").innerHTML=res.errores.length?res.errores.map(ri).join(""):`<div class="empty">✓ Sin errores críticos detectados.</div>`;
-  document.getElementById("listaAdv").innerHTML=res.advertencias.length?res.advertencias.map(rw).join(""):`<div class="empty">Sin advertencias detectadas.</div>`;
-  document.getElementById("statsGrid").innerHTML=`
-    <div class="stat"><div class="stat-label">Suma netos</div><div class="stat-val">$${Math.round(s.suma_neta||0).toLocaleString("es-CL")}</div></div>
-    <div class="stat"><div class="stat-label">Suma IVA</div><div class="stat-val">$${Math.round(s.suma_iva||0).toLocaleString("es-CL")}</div></div>
-    <div class="stat"><div class="stat-label">Suma totales</div><div class="stat-val">$${Math.round(s.suma_total||0).toLocaleString("es-CL")}</div></div>
-    <div class="stat"><div class="stat-label">Promedio doc.</div><div class="stat-val">$${Math.round(s.promedio_total||0).toLocaleString("es-CL")}</div></div>
-    <div class="stat"><div class="stat-label">N° documentos</div><div class="stat-val">${s.cantidad_documentos}</div></div>
-    <div class="stat"><div class="stat-label">IVA esperado</div><div class="stat-val">$${Math.round((s.suma_neta||0)*0.19).toLocaleString("es-CL")}</div></div>`;
 }
 
-function tab(t) {
-  ["err","adv","stats"].forEach(x=>{
-    document.getElementById("tab-"+x).className="tab"+(x===t?" active":"");
-    document.getElementById("pane"+x.charAt(0).toUpperCase()+x.slice(1)).style.display=x===t?"":"none";
+function cambiarTab(t) {
+  ["err","adv"].forEach(x => {
+    document.getElementById(`tab-${x}`)?.classList.toggle("active", x===t);
+    const p = document.getElementById(`pane-${x}`);
+    if (p) p.style.display = x===t?"":"none";
   });
 }
 
-function reset() { show("panelUpload"); resultado=null; fileRef=null; }
+function copiarTexto() {
+  const txt = document.getElementById("textoCopiable")?.textContent || "";
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.getElementById("copyBtn");
+    if (btn) { btn.textContent = "✓ Copiado"; btn.classList.add("copied"); }
+    setTimeout(() => { if (btn) { btn.textContent = "Copiar"; btn.classList.remove("copied"); }}, 2000);
+  });
+}
 
-function descargar() {
-  if (!resultado) return;
-  const blob=new Blob([JSON.stringify(resultado,null,2)],{type:"application/json"});
-  const a=Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:`reporte_${new Date().toISOString().slice(0,10)}.json`});
+function descargarJSON() {
+  if (!window._lastResult) return;
+  const blob = new Blob([JSON.stringify(window._lastResult, null, 2)], {type:"application/json"});
+  const a = Object.assign(document.createElement("a"), { href: URL.createObjectURL(blob), download: `f29_${window._lastResult?.formulario_29?.periodo||"resultado"}.json`});
   a.click();
 }
 
-async function analizarDemo() {
-  show("panelLoading");
-  // Intentar backend primero
-  const fd=new FormData();
-  const csv="fecha,rut,proveedor,numero_doc,tipo_doc,monto_neto,iva,total\n"+
-    DEMO.map(r=>Object.values(r).join(",")).join("\n");
-  fd.append("file",new Blob([csv],{type:"text/csv"}),"demo.csv");
-  const backendResult = await analizarConBackend(fd);
-  setTimeout(()=>mostrar(backendResult||analizarLocal(DEMO),"demo_marzo_2025.csv"),800);
+function escapeHtml(s) {
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
-// File input
-document.getElementById("fileInput").addEventListener("change",async e=>{
-  const file=e.target.files[0]; if(!file)return;
-  fileRef=file;
-  show("panelLoading");
-  const fd=new FormData(); fd.append("file",file);
-  const res=await analizarConBackend(fd);
-  if(res){setTimeout(()=>mostrar(res,file.name),200);return;}
-  // fallback CSV
-  if(file.name.endsWith(".csv")){
-    const txt=await file.text();
-    const lines=txt.split("\n"),hdrs=lines[0].split(",").map(h=>h.trim().replace(/"/g,"").toLowerCase());
-    const datos=lines.slice(1).filter(l=>l.trim()).map(l=>{
-      const v=l.split(",").map(x=>x.trim().replace(/"/g,""));
-      const r={};hdrs.forEach((h,i)=>r[h]=v[i]||"");return r;
-    });
-    setTimeout(()=>mostrar(analizarLocal(datos),file.name),600);
-  } else {
-    setTimeout(()=>mostrar(analizarLocal(DEMO),file.name+" (modo demo)"),600);
-  }
-});
+// ── LOADING ───────────────────────────────────────────────────────
+function mostrarLoading() { document.getElementById("loadingOverlay").style.display="flex"; }
+function ocultarLoading()  { document.getElementById("loadingOverlay").style.display="none"; }
+function setStep(msg)      { document.getElementById("loadingStep").textContent = msg; }
 
-// Drag & drop
-const uz=document.getElementById("uploadZone");
-uz.addEventListener("dragover",e=>{e.preventDefault();uz.classList.add("drag");});
-uz.addEventListener("dragleave",()=>uz.classList.remove("drag"));
-uz.addEventListener("drop",e=>{
-  e.preventDefault();uz.classList.remove("drag");
-  const f=e.dataTransfer.files[0];
-  if(f){const dt=new DataTransfer();dt.items.add(f);document.getElementById("fileInput").files=dt.files;document.getElementById("fileInput").dispatchEvent(new Event("change"));}
-});
+// ── INIT ──────────────────────────────────────────────────────────
+agregarSlot();
+agregarSlot();
 </script>
 </body>
 </html>
